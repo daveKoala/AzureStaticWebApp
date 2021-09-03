@@ -1,0 +1,45 @@
+parameters:
+  - name: 'environments'
+    type: object
+    default: 
+      - environmentName: development
+        variableGroup: dev-admin-vg
+        dependsOn: build
+      - environmentName: test
+        variableGroup: test-admin-vg
+        dependsOn: development
+      - environmentName: production
+        variableGroup: prod-admin-vg
+        dependsOn: test
+  - name: 'buildTemplate'
+    type: string
+    default: .build-templates/build-template.yml
+  - name: 'publishTemplate'
+    type: string
+    default: .build-templates/publish-template.yml
+
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: build
+    displayName: Build stage
+    jobs: 
+      - ${{each build in parameters.environments}}:
+        - template: ${{parameters.buildTemplate}}
+          parameters:
+            environment: ${{build.environmentName}}
+            variableGroup: ${{build.variableGroup}}
+
+  - ${{each stage in parameters.environments}}:
+    - stage: ${{stage.environmentName}} 
+      displayName: ${{stage.environmentName}} 
+      dependsOn: ${{stage.dependsOn}}
+      jobs:
+        - template: ${{parameters.publishTemplate}}
+          parameters:
+            environment: ${{stage.environmentName}}
+            variableGroup: ${{stage.variableGroup}}

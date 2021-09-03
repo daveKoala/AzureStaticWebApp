@@ -1,0 +1,39 @@
+parameters:
+  - name: environment
+    default: Development_websites
+    type: string
+  - name: variableGroup
+    default: development-variables
+    type: string
+
+jobs:
+  - deployment: 
+    displayName: 'Push to Static Web Apps'
+    environment: ${{parameters.environment}}
+    variables:
+      - group: ${{parameters.variableGroup}}
+    pool:
+      vmImage: ubuntu-latest
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              submodules: true
+
+            - download: none
+
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                artifact: ${{parameters.environment}} # E.g. DEV, TEST or PROD
+                path: ./app/dist # Put build artifact back into the project
+                displayName: Download ${{parameters.environment}} artifact
+                
+            - task: AzureStaticWebApp@0
+              inputs:
+                app_location: 'app/dist'
+                api_location: 'api'
+                output_location: 'dist'
+                skip_app_build: true
+              env:
+                azure_static_web_apps_api_token: $(azure-deploy-token)

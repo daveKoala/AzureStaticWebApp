@@ -1,0 +1,55 @@
+parameters:
+  - name: 'environment'
+    type: 'string'
+    default: 'development'
+  - name: 'variableGroup'
+    type: 'string'
+    default: 'development-variables'
+  - name: 'buildRoot'
+    type: 'string'
+    default: 'app'
+  - name: 'nodeVersion'
+    type: string
+    default: '14.x'
+
+jobs:
+  - job: build_project_for_${{parameters.environment}}
+    variables:
+      - group: ${{parameters.variableGroup}}
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - checkout: self
+        submodules: true
+        
+      - task: UseNode@1
+        displayName: 'Install Node v${{ parameters.nodeVersion }}'
+        inputs:
+          versionSpec: ${{ parameters.nodeVersion }}
+      
+      - task: Bash@3
+        displayName: 'Build for production'
+        inputs:
+          targetType: 'inline'
+          script: |        
+            npm ci --prefix=app 
+            npm run build --prefix=app
+        env:
+          VUE_APP_APOLLO_GRAPHQL_CLIENT_URI: $(VUE-APP-APOLLO-GRAPHQL-CLIENT-URI)
+          VUE_APP_AUTH0_API_IDENTIFIER: $(VUE-APP-AUTH0-API-IDENTIFIER)
+          VUE_APP_AUTH0_CLIENT_ID: $(VUE-APP-AUTH0-CLIENT-ID)
+          VUE_APP_AUTH0_DOMAIN: $(VUE-APP-AUTH0-DOMAIN)
+          VUE_APP_TITLE: $(VUE-APP-TITLE)
+        
+      - task: Bash@3
+        displayName: 'Copy configuration files'
+        inputs:
+          targetType: 'inline'
+          script: |
+            mv staticwebapp.config.json ./app/dist
+      
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish'
+        inputs:
+          pathtoPublish: '$(System.DefaultWorkingDirectory)/app/dist'
+          artifactName: ${{ parameters.environment }}

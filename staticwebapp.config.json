@@ -1,0 +1,7 @@
+{
+  "globalHeaders": {
+    "content-security-policy": "default-src https: 'unsafe-eval' 'unsafe-inline'; object-src 'none'; worker-src blob:;",
+    "cache-control": "private no-store",
+    "X-Frame-Options": "SAMEORIGIN"
+  }
+}
